@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma"
+
+// Prevent static generation - requires database at runtime
+export const dynamic = 'force-dynamic'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

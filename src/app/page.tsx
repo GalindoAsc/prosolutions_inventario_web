@@ -1,5 +1,9 @@
 import Image from "next/image"
 import Link from "next/link"
+
+// Prevent static generation - requires database at runtime
+export const dynamic = 'force-dynamic'
+
 import { auth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"

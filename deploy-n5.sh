@@ -90,7 +90,7 @@ Write-Host '>>> Esperando a que inicie...'
 Start-Sleep -Seconds 10
 
 Write-Host '>>> Ejecutando migraciones...'
-docker compose exec -T app npx prisma db push
+docker compose exec -T app node node_modules/prisma/build/index.js db push --skip-generate
 
 Write-Host '>>> Verificando estado...'
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'

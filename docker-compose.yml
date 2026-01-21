@@ -41,7 +41,7 @@ services:
         condition: service_healthy
     networks:
       - prosolutions-network
-    command: [ "npx", "prisma", "db", "push", "--skip-generate" ]
+    command: [ "npx", "prisma", "db", "push" ]
     profiles:
       - migrate
 

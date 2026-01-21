@@ -67,17 +67,19 @@ function playNotificationSound() {
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
   const { onNotification, enabled = true, playSound = true, persist = true } = options
-  const [notifications, setNotifications] = useState<Notification[]>(() =>
-    persist ? loadPersistedNotifications() : []
-  )
+  // Initialize empty to avoid hydration mismatch
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [isConnected, setIsConnected] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(() => {
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  // Load persisted data on mount
+  useEffect(() => {
     if (persist) {
       const persisted = loadPersistedNotifications()
-      return persisted.filter(n => !n.read).length
+      setNotifications(persisted)
+      setUnreadCount(persisted.filter(n => !n.read).length)
     }
-    return 0
-  })
+  }, [persist])
   const playSoundRef = useRef(playSound)
   const persistRef = useRef(persist)
   const eventSourceRef = useRef<EventSource | null>(null)

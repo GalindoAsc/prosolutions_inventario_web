@@ -121,7 +121,7 @@ export function NotificationsDropdown() {
           />
 
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-80 bg-background border rounded-lg shadow-lg z-50 overflow-hidden">
+          <div className="absolute right-0 sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-background border rounded-lg shadow-lg z-50 overflow-hidden left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0">
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b bg-muted/30">
               <h3 className="font-semibold">Notificaciones</h3>

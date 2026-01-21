@@ -1,65 +1,224 @@
-import Image from "next/image";
+import Image from "next/image"
+import Link from "next/link"
+import { auth } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { CurrencyToggleCompact } from "@/components/currency-toggle"
+import { ProductGrid } from "@/components/product-grid"
+import { prisma } from "@/lib/prisma"
+import { Smartphone, LogIn, UserPlus, LayoutDashboard, ShoppingCart, User, CalendarCheck } from "lucide-react"
 
-export default function Home() {
+async function getPublicProducts() {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        isPublic: true,
+        isActive: true,
+      },
+      include: {
+        models: {
+          include: {
+            model: {
+              include: { brand: true },
+            },
+          },
+        },
+        category: true,
+      },
+      take: 12,
+      orderBy: { createdAt: "desc" },
+    })
+    return products
+  } catch (error) {
+    console.error("Error fetching products:", error)
+    return []
+  }
+}
+
+async function getStats() {
+  try {
+    const [brandsCount, productsCount] = await Promise.all([
+      prisma.brand.count(),
+      prisma.product.count({ where: { isActive: true } }),
+    ])
+    return { brandsCount, productsCount }
+  } catch {
+    return { brandsCount: 0, productsCount: 0 }
+  }
+}
+
+export default async function HomePage() {
+  const session = await auth()
+  const products = await getPublicProducts()
+  const stats = await getStats()
+
+  const isLoggedIn = !!session
+  const isAdmin = session?.user?.role === "ADMIN"
+  const isApproved = session?.user?.status === "APPROVED"
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo.jpg"
+              alt="Pro-Solutions"
+              width={40}
+              height={40}
+              className="rounded-lg"
+            />
+            <span className="font-bold text-lg hidden sm:inline">Pro-Solutions</span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <CurrencyToggleCompact />
+            <ThemeToggle />
+            {isLoggedIn ? (
+              isAdmin ? (
+                <>
+                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+                    <Link href="/admin">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link href="/admin">
+                      <span className="sm:hidden">Admin</span>
+                      <span className="hidden sm:inline">Panel Admin</span>
+                    </Link>
+                  </Button>
+                </>
+              ) : isApproved ? (
+                <>
+                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+                    <Link href="/catalogo">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      Catálogo
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+                    <Link href="/mis-reservas">
+                      <CalendarCheck className="mr-2 h-4 w-4" />
+                      Mis Reservas
+                    </Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link href="/perfil">
+                      <User className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Mi Cuenta</span>
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/pending">
+                    <User className="mr-2 h-4 w-4" />
+                    Mi Cuenta
+                  </Link>
+                </Button>
+              )
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/login">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Entrar</span>
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/register">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Solicitar Acceso</span>
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-12 sm:py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
+        <div className="container mx-auto max-w-7xl text-center">
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/logo.jpg"
+              alt="Pro-Solutions"
+              width={150}
+              height={150}
+              className="rounded-2xl shadow-lg"
+            />
+          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+            Refacciones para Celulares
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Encuentra las mejores refacciones para todo tipo de celulares.
+            Pantallas, baterías, flex y más.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            {!isLoggedIn && (
+              <Button size="lg" asChild>
+                <Link href="/register">
+                  Solicitar Cuenta
+                </Link>
+              </Button>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="flex justify-center gap-8 mt-12">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">{stats.brandsCount}+</div>
+              <div className="text-muted-foreground">Marcas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-primary">{stats.productsCount}+</div>
+              <div className="text-muted-foreground">Productos</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Public Products */}
+      <section className="py-12 sm:py-16 px-4">
+        <div className="container mx-auto max-w-7xl">
+          <h2 className="text-2xl font-bold mb-8 text-center">
+            Productos Destacados
+          </h2>
+
+          <ProductGrid
+            products={products}
+            isLoggedIn={isLoggedIn}
+            isApproved={isApproved}
+            customerType={session?.user?.customerType}
+          />
+
+          {products.length > 0 && !isLoggedIn && (
+            <div className="text-center mt-8">
+              <p className="text-muted-foreground mb-4">
+                ¿Quieres acceder a precios de mayoreo y productos exclusivos?
+              </p>
+              <Button asChild>
+                <Link href="/register">Solicitar Acceso</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t py-8 px-4">
+        <div className="container mx-auto max-w-7xl text-center text-muted-foreground">
+          <p>Pro-Solutions - Téc. Diego Alvarez</p>
+          <p className="text-sm mt-2">
+            Refacciones para celulares de todas las marcas
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </footer>
     </div>
-  );
+  )
 }

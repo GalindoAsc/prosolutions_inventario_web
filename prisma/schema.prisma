@@ -1,0 +1,256 @@
+// ProSolutions Inventario - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+enum CustomerType {
+  RETAIL    // Menudeo
+  WHOLESALE // Mayoreo
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReservationStatus {
+  PENDING           // Esperando acción
+  DEPOSIT_VERIFIED  // Depósito verificado por admin
+  APPROVED          // Aprobada y lista para recoger
+  REJECTED          // Rechazada por admin
+  COMPLETED         // Entregada al cliente
+  CANCELLED         // Cancelada por cliente
+  EXPIRED           // Expirada automáticamente
+}
+
+enum ReservationType {
+  TEMPORARY  // Reserva temporal sin pago (expira en X minutos)
+  DEPOSIT    // Reserva con depósito del 50% (expira en X horas si no se recoge)
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id                    String       @id @default(cuid())
+  email                 String?      @unique  // Opcional para permitir registro solo con teléfono
+  password              String
+  name                  String
+  phone                 String?      @unique  // Único si se proporciona
+  role                  UserRole     @default(CUSTOMER)
+  customerType          CustomerType @default(RETAIL)
+  requestedCustomerType CustomerType @default(RETAIL)  // Tipo solicitado al registrarse
+  status                UserStatus   @default(PENDING)
+
+  reservations  Reservation[]
+  movements     InventoryMovement[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  logo      String?
+
+  models    Model[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Model {
+  id        String    @id @default(cuid())
+  name      String              // Ej: "Galaxy S25 Ultra"
+  slug      String
+  brandId   String
+
+  // Variantes/SKUs del modelo (SM-S938B, SM-S938U, etc.)
+  variants  ModelVariant[]
+
+  brand     Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  products  ProductModel[] // Relación muchos a muchos con productos
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([brandId, slug])
+  @@index([name])
+}
+
+// Variantes/SKUs de cada modelo (para búsqueda por número de modelo)
+model ModelVariant {
+  id        String   @id @default(cuid())
+  modelId   String
+  sku       String   @unique  // Ej: SM-S938B, SM-S938U, A2894, etc.
+  region    String?           // Ej: USA, Europe, Global, etc.
+
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+  @@index([sku])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  icon      String?
+
+  products  Product[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  barcode        String?   @unique
+
+  retailPrice    Float     // Precio menudeo
+  wholesalePrice Float     // Precio mayoreo
+
+  stock          Int       @default(0)
+  minStock       Int       @default(1)
+
+  images         String[]  // Array de URLs
+
+  isPublic       Boolean   @default(true)   // Visible en catálogo público
+  hidePrice      Boolean   @default(false)  // Ocultar precio (requiere login)
+  isActive       Boolean   @default(true)
+  isUniversal    Boolean   @default(false)  // Producto universal (aparece en todos los modelos)
+
+  categoryId     String
+
+  // Relación muchos a muchos con modelos
+  models         ProductModel[]
+  category       Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  reservations   Reservation[]
+  movements      InventoryMovement[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([barcode])
+  @@index([isUniversal])
+}
+
+// Tabla intermedia para relación muchos a muchos entre Product y Model
+model ProductModel {
+  id        String   @id @default(cuid())
+  productId String
+  modelId   String
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, modelId])
+  @@index([productId])
+  @@index([modelId])
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+
+  quantity        Int
+  totalPrice      Float
+  depositAmount   Float?            // Monto de anticipo (50% si aplica)
+  depositPaid     Boolean           @default(false)
+
+  // Tipo de reserva
+  type            ReservationType   @default(TEMPORARY)  // TEMPORARY = sin pago, DEPOSIT = con anticipo
+
+  status          ReservationStatus @default(PENDING)
+
+  paymentProofUrl String?           // URL del comprobante de pago
+  paymentMethod   String?           // "transferencia", "oxxo", "efectivo"
+  adminNotes      String?
+
+  expiresAt       DateTime          // Fecha/hora de expiración de la reserva
+
+  userId          String
+  productId       String
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model InventoryMovement {
+  id            String       @id @default(cuid())
+
+  type          MovementType
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reason        String?
+
+  productId     String
+  userId        String?      // Quien hizo el movimiento
+
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime     @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model Settings {
+  id                        String  @id @default("default")
+  
+  // Configuración de reservas temporales (sin pago)
+  tempReservationMinutes    Int     @default(30)     // Minutos que dura una reserva temporal
+  
+  // Configuración de reservas con depósito
+  depositPercentage         Int     @default(50)     // Porcentaje de anticipo requerido
+  depositReservationHours   Int     @default(48)     // Horas para recoger después de verificar depósito
+  
+  // Configuración de expiración pendiente de verificación
+  pendingVerificationHours  Int     @default(24)     // Horas para que admin verifique el depósito
+
+  // Configuración de moneda
+  exchangeRate              Float   @default(17.50)  // Tipo de cambio MXN a USD
+
+  updatedAt                 DateTime @updatedAt
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  keys      String   // JSON stringified
+  userId    String?
+
+  createdAt DateTime @default(now())
+}

@@ -59,6 +59,14 @@ echo -e "${GREEN}>>> Actualizando código y reconstruyendo contenedores...${NC}"
 
 # Comando remoto - PowerShell syntax (Windows SSH usa PowerShell por defecto)
 ssh -o StrictHostKeyChecking=no "$REMOTE_USER@$REMOTE_HOST" "
+# Verificar si existe el directorio del proyecto
+if (!(Test-Path 'D:\\Projectos\\prosolutions_inventario_web')) {
+    Write-Host '>>> Clonando repositorio por primera vez...'
+    New-Item -ItemType Directory -Force -Path 'D:\\Projectos' | Out-Null
+    cd D:\\Projectos
+    git clone https://github.com/GalindoAsc/prosolutions_inventario_web.git
+}
+
 cd D:\\Projectos\\prosolutions_inventario_web
 
 Write-Host '>>> Actualizando desde GitHub...'
@@ -66,12 +74,26 @@ git fetch --all
 git reset --hard origin/main
 git clean -fd
 
+Write-Host '>>> Copiando archivo .env de producción...'
+# Crear .env si no existe (deberás configurarlo manualmente la primera vez)
+if (!(Test-Path '.env')) {
+    Write-Host 'ADVERTENCIA: No existe .env, creando plantilla...'
+    @'
+DATABASE_URL=postgresql://prosolutions:YOUR_PASSWORD@db:5432/prosolutions_inventario?schema=public
+NEXTAUTH_SECRET=YOUR_NEXTAUTH_SECRET_HERE
+NEXTAUTH_URL=https://prosolutions.ascnex.com
+'@ | Out-File -FilePath '.env' -Encoding utf8
+}
+
 Write-Host '>>> Reconstruyendo contenedores Docker...'
 docker compose down
 docker compose up -d --build
 
+Write-Host '>>> Esperando a que la app inicie...'
+Start-Sleep -Seconds 10
+
 Write-Host '>>> Ejecutando migraciones de base de datos...'
-docker compose exec -T app npx prisma migrate deploy
+docker compose exec -T app npx prisma db push
 
 Write-Host '>>> Verificando estado...'
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'

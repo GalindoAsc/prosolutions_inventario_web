@@ -22,7 +22,7 @@ import {
   Download,
   Upload,
 } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
+import { useCurrency } from "@/components/currency-provider"
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,7 @@ interface Product {
 type ViewMode = "grid-large" | "grid-small" | "list"
 
 export default function ProductsPage() {
+  const { formatPrice } = useCurrency()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")

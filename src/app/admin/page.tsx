@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Boxes,
 } from "lucide-react"
-import { formatPrice, formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
+import { PriceDisplay } from "@/components/price-display"
 
 async function getDashboardStats() {
   try {
@@ -246,7 +247,7 @@ export default async function AdminDashboard() {
                           : "Pendiente"}
                       </Badge>
                       <p className="text-sm font-medium mt-1">
-                        {formatPrice(reservation.totalPrice)}
+                        <PriceDisplay price={reservation.totalPrice} />
                       </p>
                     </div>
                   </div>

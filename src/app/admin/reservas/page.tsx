@@ -30,7 +30,7 @@ import {
   QrCode,
   ScanLine,
 } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
+import { useCurrency } from "@/components/currency-provider"
 import { CountdownTimer } from "@/components/countdown-timer"
 import { ReservationQR } from "@/components/reservation-qr"
 import { BarcodeScanner } from "@/components/barcode-scanner"
@@ -83,6 +83,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 }
 
 export default function ReservationsPage() {
+  const { formatPrice } = useCurrency()
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [isLoading, setIsLoading] = useState(true)

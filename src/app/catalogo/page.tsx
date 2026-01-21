@@ -18,6 +18,7 @@ import {
   Smartphone,
   SlidersHorizontal,
 } from "lucide-react"
+import { useCart } from "@/components/cart-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -287,55 +288,37 @@ export default function CatalogoPage() {
     )
   }
 
-  // Reservation state
+  // Cart integration
+  const { addItem } = useCart()
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [reservationOpen, setReservationOpen] = useState(false)
   const [quantity, setQuantity] = useState(1)
-  const [reservationType, setReservationType] = useState<"TEMPORARY" | "DEPOSIT">("TEMPORARY")
-  const [reserving, setReserving] = useState(false)
 
-  const handleReserveClick = (product: Product) => {
+  const handleAddToCartClick = (product: Product) => {
     setSelectedProduct(product)
     setQuantity(1)
-    setReservationType("TEMPORARY")
     setReservationOpen(true)
   }
 
-  const handleReserve = async () => {
+  const handleConfirmAddToCart = () => {
     if (!selectedProduct) return
 
-    setReserving(true)
-    try {
-      const res = await fetch("/api/reservations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: selectedProduct.id,
-          quantity,
-          type: reservationType,
-        }),
-      })
+    const price = customerType === "WHOLESALE"
+      ? selectedProduct.wholesalePrice
+      : selectedProduct.retailPrice
 
-      const data = await res.json()
+    addItem({
+      productId: selectedProduct.id,
+      name: selectedProduct.name,
+      price: price,
+      quantity: quantity,
+      image: selectedProduct.images[0],
+      maxStock: selectedProduct.stock
+    })
 
-      if (!res.ok) {
-        throw new Error(data.error || "Error al reservar")
-      }
-
-      // Success
-      setReservationOpen(false)
-      // Re-fetch products to update stock
-      setSelectedBrand((prev) => prev) // Trigger re-fetch
-
-      // Could add toast here
-      alert("Reserva creada exitosamente! Ve a 'Mis Reservas' para ver detalles.")
-      router.push("/mis-reservas")
-    } catch (error: any) {
-      console.error("Error reserving:", error)
-      alert(error.message || "Error al crear la reserva")
-    } finally {
-      setReserving(false)
-    }
+    setReservationOpen(false)
+    // Optional: Toast notification
+    alert("Producto agregado al carrito")
   }
 
   return (
@@ -388,32 +371,8 @@ export default function CatalogoPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Reserva</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={reservationType === "TEMPORARY" ? "default" : "outline"}
-                  onClick={() => setReservationType("TEMPORARY")}
-                  className="h-auto py-2 flex flex-col gap-1"
-                >
-                  <span>Temporal</span>
-                  <span className="text-[10px] font-normal opacity-80">30 min</span>
-                </Button>
-                <Button
-                  variant={reservationType === "DEPOSIT" ? "default" : "outline"}
-                  onClick={() => setReservationType("DEPOSIT")}
-                  className="h-auto py-2 flex flex-col gap-1"
-                  disabled // Deshabilitado por ahora hasta implementar subida de comprobante
-                  title="Próximamente"
-                >
-                  <span>Con Depósito</span>
-                  <span className="text-[10px] font-normal opacity-80">24 horas</span>
-                </Button>
-              </div>
-            </div>
-
             <div className="pt-2 border-t flex justify-between items-end">
-              <span className="text-sm font-medium">Total a Pagar:</span>
+              <span className="text-sm font-medium">Subtotal:</span>
               <span className="text-xl font-bold text-primary">
                 {selectedProduct && formatPrice(
                   (customerType === "WHOLESALE"
@@ -428,8 +387,9 @@ export default function CatalogoPage() {
             <Button variant="outline" onClick={() => setReservationOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleReserve} disabled={reserving}>
-              {reserving ? "Reservando..." : "Confirmar Reserva"}
+            <Button onClick={handleConfirmAddToCart}>
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Agregar al Carrito
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -626,7 +586,7 @@ export default function CatalogoPage() {
                             className="h-8 w-8 rounded-full shadow-lg p-0"
                             onClick={(e) => {
                               e.preventDefault()
-                              handleReserveClick(product)
+                              handleAddToCartClick(product)
                             }}
                           >
                             <ShoppingCart className="h-4 w-4" />

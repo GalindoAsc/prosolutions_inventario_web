@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { CurrencyProvider } from "@/components/currency-provider"
 import { SessionProvider } from "@/components/session-provider"
 import { MobileNav } from "@/components/mobile-nav"
+import { CartProvider } from "@/components/cart-context"
 import { auth } from "@/lib/auth"
 
 const inter = Inter({
@@ -61,7 +62,9 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <CurrencyProvider>
-              {children}
+              <CartProvider>
+                {children}
+              </CartProvider>
             </CurrencyProvider>
             <MobileNav isAdmin={isAdmin} />
           </ThemeProvider>

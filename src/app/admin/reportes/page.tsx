@@ -21,7 +21,8 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react"
-import { formatPrice, formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
+import { useCurrency } from "@/components/currency-provider"
 
 interface ReportStats {
   totalProducts: number
@@ -83,6 +84,7 @@ interface ReportStats {
 }
 
 export default function ReportsPage() {
+  const { formatPrice } = useCurrency()
   const [stats, setStats] = useState<ReportStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,10 +98,10 @@ export default function ReportsPage() {
       const params = new URLSearchParams()
       if (dateFrom) params.append("from", dateFrom)
       if (dateTo) params.append("to", dateTo)
-      
+
       const response = await fetch(`/api/reports?${params.toString()}`)
       if (!response.ok) throw new Error("Error al cargar estadísticas")
-      
+
       const data = await response.json()
       setStats(data)
     } catch {
@@ -111,7 +113,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchStats()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const exportCSV = () => {
@@ -541,8 +543,8 @@ export default function ReportsPage() {
                         reservation.status === "COMPLETED"
                           ? "default"
                           : reservation.status === "CANCELLED" || reservation.status === "EXPIRED"
-                          ? "destructive"
-                          : "secondary"
+                            ? "destructive"
+                            : "secondary"
                       }
                     >
                       {reservation.status}

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarcodeScanner } from "@/components/barcode-scanner"
 import { ArrowLeft, Search, Loader2, Package, Plus } from "lucide-react"
-import { formatPrice } from "@/lib/utils"
+import { useCurrency } from "@/components/currency-provider"
 
 interface Product {
   id: string
@@ -19,6 +19,7 @@ interface Product {
 }
 
 export default function ScanProductPage() {
+  const { formatPrice } = useCurrency()
   const router = useRouter()
   const [scannedCode, setScannedCode] = useState("")
   const [manualCode, setManualCode] = useState("")

@@ -385,7 +385,7 @@ export default function ProductsPage() {
                         variant={getStockVariant(product)}
                         className="absolute top-2 right-2"
                       >
-                        {product.stock} uds
+                        {product.stock} UD
                       </Badge>
                     </div>
 

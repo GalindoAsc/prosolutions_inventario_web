@@ -130,7 +130,7 @@ export default function ScanProductPage() {
                 <div>
                   <h3 className="font-semibold text-lg">{product.name}</h3>
                   <p className="text-muted-foreground">
-                    Stock: {product.stock} unidades
+                    Stock: {product.stock} UD
                   </p>
                   <p className="text-primary font-bold">
                     {formatPrice(product.retailPrice)}

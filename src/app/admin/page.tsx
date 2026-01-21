@@ -291,7 +291,7 @@ export default async function AdminDashboard() {
                   </div>
                   <div className="text-right">
                     <Badge variant={product.stock === 0 ? "destructive" : "warning"}>
-                      {product.stock} unidades
+                      {product.stock} UD
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-1">
                       Mínimo: {product.minStock}

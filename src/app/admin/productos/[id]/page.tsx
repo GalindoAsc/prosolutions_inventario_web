@@ -427,7 +427,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     className="h-4 w-4"
                   />
                   <Label htmlFor="isPublic" className="cursor-pointer">
-                    Visible para visitantes (sin precio)
+                    Mostrar en catálogo público
                   </Label>
                 </div>
 

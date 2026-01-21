@@ -1,31 +1,38 @@
 "use client"
 
 import { useCurrency } from "@/components/currency-provider"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export function CurrencyToggle({ className }: { className?: string }) {
   const { currency, setCurrency, exchangeRate } = useCurrency()
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
-      <Button
-        variant={currency === "MXN" ? "default" : "ghost"}
-        size="sm"
-        className="h-8 px-2 text-xs font-medium"
+    <div
+      className={cn("flex items-center", className)}
+      title={`Tipo de cambio: 1 USD = $${exchangeRate.toFixed(2)} MXN`}
+    >
+      <button
         onClick={() => setCurrency("MXN")}
+        className={cn(
+          "px-3 py-1.5 text-sm font-medium rounded-l-md border transition-colors",
+          currency === "MXN"
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-background text-muted-foreground border-input hover:bg-accent"
+        )}
       >
-        MXN
-      </Button>
-      <Button
-        variant={currency === "USD" ? "default" : "ghost"}
-        size="sm"
-        className="h-8 px-2 text-xs font-medium"
+        $MXN
+      </button>
+      <button
         onClick={() => setCurrency("USD")}
-        title={`1 USD = $${exchangeRate.toFixed(2)} MXN`}
+        className={cn(
+          "px-3 py-1.5 text-sm font-medium rounded-r-md border-y border-r transition-colors",
+          currency === "USD"
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-background text-muted-foreground border-input hover:bg-accent"
+        )}
       >
-        USD
-      </Button>
+        $USD
+      </button>
     </div>
   )
 }
@@ -37,18 +44,33 @@ export function CurrencyToggleCompact({ className }: { className?: string }) {
     <button
       onClick={() => setCurrency(currency === "MXN" ? "USD" : "MXN")}
       className={cn(
-        "flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-medium",
-        "bg-muted hover:bg-muted/80 transition-colors",
+        "relative flex items-center h-8 w-16 rounded-full p-1 transition-colors",
+        currency === "MXN" ? "bg-green-600" : "bg-blue-600",
         className
       )}
-      title={`1 USD = $${exchangeRate.toFixed(2)} MXN`}
+      title={`Click para cambiar. 1 USD = $${exchangeRate.toFixed(2)} MXN`}
     >
-      <span className={currency === "MXN" ? "text-primary" : "text-muted-foreground"}>
-        🇲🇽
+      {/* Slider ball */}
+      <span
+        className={cn(
+          "absolute h-6 w-6 rounded-full bg-white shadow-md flex items-center justify-center text-xs transition-transform",
+          currency === "MXN" ? "translate-x-0" : "translate-x-8"
+        )}
+      >
+        {currency === "MXN" ? "🇲🇽" : "🇺🇸"}
       </span>
-      <span className="text-xs">/</span>
-      <span className={currency === "USD" ? "text-primary" : "text-muted-foreground"}>
-        🇺🇸
+      {/* Labels */}
+      <span className={cn(
+        "absolute left-2 text-[10px] font-bold text-white/90",
+        currency === "MXN" ? "opacity-0" : "opacity-100"
+      )}>
+        MX
+      </span>
+      <span className={cn(
+        "absolute right-2 text-[10px] font-bold text-white/90",
+        currency === "USD" ? "opacity-0" : "opacity-100"
+      )}>
+        US
       </span>
     </button>
   )

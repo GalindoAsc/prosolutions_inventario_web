@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Smartphone, Lock } from "lucide-react"
+import { Smartphone, Lock, Package } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useCurrency } from "@/components/currency-provider"
@@ -48,10 +48,10 @@ export function ProductGrid({ products, isLoggedIn, isApproved, customerType }: 
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
       {products.map((product) => (
-        <Card key={product.id} className="overflow-hidden group">
-          <div className="aspect-square relative bg-muted">
+        <Card key={product.id} className="overflow-hidden group hover:shadow-md transition-shadow">
+          <div className="aspect-square relative bg-gradient-to-br from-muted to-muted/50">
             {product.images[0] ? (
               <Image
                 src={product.images[0]}
@@ -61,36 +61,46 @@ export function ProductGrid({ products, isLoggedIn, isApproved, customerType }: 
               />
             ) : (
               <div className="flex items-center justify-center h-full">
-                <Smartphone className="h-16 w-16 text-muted-foreground" />
+                <Package className="h-12 w-12 text-muted-foreground/40" />
               </div>
             )}
-            {product.stock <= product.minStock && product.stock > 0 && (
-              <Badge variant="destructive" className="absolute top-2 right-2">
-                Últimas piezas
+            {/* Stock badge */}
+            {product.stock > 0 && product.stock <= product.minStock && (
+              <Badge variant="destructive" className="absolute top-2 right-2 text-[10px] px-1.5">
+                {product.stock} UD
               </Badge>
             )}
             {product.stock === 0 && (
-              <Badge variant="secondary" className="absolute top-2 right-2">
+              <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] px-1.5">
                 Agotado
               </Badge>
             )}
+            {product.stock > product.minStock && (
+              <Badge variant="default" className="absolute top-2 right-2 text-[10px] px-1.5 bg-green-600">
+                {product.stock} UD
+              </Badge>
+            )}
           </div>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">
+          <CardContent className="p-3">
+            {/* Modelo/Marca */}
+            <div className="text-[10px] text-muted-foreground truncate mb-0.5">
               {product.models[0]?.model?.brand?.name} {product.models[0]?.model?.name}
             </div>
-            <h3 className="font-medium line-clamp-2 mb-2">
+
+            {/* Nombre */}
+            <h3 className="font-medium text-sm line-clamp-2 mb-2 min-h-[2.5rem]">
               {product.name}
             </h3>
-            <Badge variant="outline" className="mb-3">
+
+            {/* Categoría */}
+            <Badge variant="outline" className="mb-2 text-[10px] px-1.5 py-0">
               {product.category.name}
             </Badge>
 
-            {/* Mostrar precio según hidePrice y sesión */}
+            {/* Precio */}
             {product.hidePrice ? (
-              // Producto con precio oculto - requiere login
               isLoggedIn && isApproved ? (
-                <div className="text-lg font-bold text-primary">
+                <div className="text-base font-bold text-primary">
                   {formatPrice(
                     customerType === "WHOLESALE"
                       ? product.wholesalePrice
@@ -98,22 +108,21 @@ export function ProductGrid({ products, isLoggedIn, isApproved, customerType }: 
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Lock className="h-4 w-4" />
-                  <span className="text-sm">Precio con cuenta</span>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Lock className="h-3.5 w-3.5" />
+                  <span className="text-xs">Inicia sesión</span>
                 </div>
               )
             ) : (
-              // Producto con precio visible - mostrar precio menudeo
-              <div className="text-lg font-bold text-primary">
+              <div className="text-base font-bold text-primary">
                 {formatPrice(
                   isLoggedIn && isApproved && customerType === "WHOLESALE"
                     ? product.wholesalePrice
                     : product.retailPrice
                 )}
                 {isLoggedIn && isApproved && customerType === "WHOLESALE" && (
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
-                    (mayoreo)
+                  <span className="text-[10px] font-normal text-cyan-600 ml-1">
+                    mayoreo
                   </span>
                 )}
               </div>

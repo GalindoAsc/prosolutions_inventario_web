@@ -5,9 +5,11 @@ import { auth } from "@/lib/auth"
 const connections = new Map<string, ReadableStreamDefaultController>()
 
 // Tipos de eventos
-export type NotificationType = 
+export type NotificationType =
   | "new_reservation"
   | "reservation_updated"
+  | "reservation_expired"
+  | "reservation_expiring_soon"
   | "deposit_received"
   | "user_registered"
   | "low_stock"

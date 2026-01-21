@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, useCallback } from "react"
 export type NotificationType =
   | "new_reservation"
   | "reservation_updated"
+  | "reservation_expired"
+  | "reservation_expiring_soon"
   | "deposit_received"
   | "user_registered"
   | "low_stock"

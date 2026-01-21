@@ -52,6 +52,26 @@ interface ReportStats {
     name: string
     productCount: number
   }>
+  topClients: Array<{
+    id: string
+    name: string
+    email: string | null
+    customerType: string
+    completedReservations: number
+  }>
+  lowStockByCategory: Array<{
+    id: string
+    name: string
+    totalProducts: number
+    lowStockCount: number
+    outOfStockCount: number
+    products: Array<{
+      id: string
+      name: string
+      stock: number
+      minStock: number
+    }>
+  }>
   recentReservations: Array<{
     id: string
     createdAt: string
@@ -408,6 +428,87 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Clientes Frecuentes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Clientes Frecuentes
+          </CardTitle>
+          <CardDescription>Top 10 clientes con más compras completadas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!stats.topClients || stats.topClients.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No hay datos disponibles</p>
+          ) : (
+            <div className="space-y-3">
+              {stats.topClients.map((client, index) => (
+                <div key={client.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground text-sm w-5 font-medium">{index + 1}.</span>
+                    <div>
+                      <p className="text-sm font-medium">{client.name}</p>
+                      <p className="text-xs text-muted-foreground">{client.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {client.customerType === "WHOLESALE" ? "Mayoreo" : "Menudeo"}
+                    </Badge>
+                    <Badge className="bg-green-500 hover:bg-green-600">
+                      {client.completedReservations} compras
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Stock Bajo por Categoría */}
+      {stats.lowStockByCategory && stats.lowStockByCategory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              Stock Bajo por Categoría
+            </CardTitle>
+            <CardDescription>Productos con stock bajo agrupados por categoría</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {stats.lowStockByCategory.map((category) => (
+                <div key={category.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium">{category.name}</h4>
+                    <div className="flex gap-2">
+                      <Badge variant="secondary">{category.lowStockCount} bajo</Badge>
+                      {category.outOfStockCount > 0 && (
+                        <Badge variant="destructive">{category.outOfStockCount} agotados</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {category.products.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded"
+                      >
+                        <span className="truncate max-w-[250px]">{product.name}</span>
+                        <span className={`font-medium ${product.stock === 0 ? "text-red-500" : "text-yellow-600"}`}>
+                          {product.stock} / {product.minStock} UD
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Últimas Reservas */}
       <Card>

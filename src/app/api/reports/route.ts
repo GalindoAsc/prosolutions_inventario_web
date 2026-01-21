@@ -51,6 +51,10 @@ export async function GET(req: NextRequest) {
       topBrandsData,
       // Últimas reservas
       recentReservations,
+      // Top clientes
+      topClientsData,
+      // Stock por categoría
+      categoriesWithStock,
     ] = await Promise.all([
       // Productos
       prisma.product.count(),
@@ -120,6 +124,43 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
+      // Top clientes
+      prisma.user.findMany({
+        where: { role: "CUSTOMER", status: "APPROVED" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          customerType: true,
+          _count: {
+            select: {
+              reservations: hasDateFilter
+                ? { where: { createdAt: dateFilter, status: "COMPLETED" } }
+                : { where: { status: "COMPLETED" } },
+            },
+          },
+        },
+        orderBy: {
+          reservations: { _count: "desc" },
+        },
+        take: 10,
+      }),
+      // Stock bajo por categoría
+      prisma.category.findMany({
+        select: {
+          id: true,
+          name: true,
+          products: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              name: true,
+              stock: true,
+              minStock: true,
+            },
+          },
+        },
+      }),
     ])
 
     // Calcular estadísticas de stock
@@ -175,6 +216,55 @@ export async function GET(req: NextRequest) {
     // Ordenar por cantidad de productos
     topBrands.sort((a: { productCount: number }, b: { productCount: number }) => b.productCount - a.productCount)
 
+    // Formatear top clientes
+    type TopClientData = {
+      id: string
+      name: string
+      email: string | null
+      customerType: string
+      _count: { reservations: number }
+    }
+    const topClients = (topClientsData as TopClientData[])
+      .filter(c => c._count.reservations > 0)
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        customerType: c.customerType,
+        completedReservations: c._count.reservations,
+      }))
+
+    // Formatear stock bajo por categoría
+    type CategoryWithStock = {
+      id: string
+      name: string
+      products: Array<{
+        id: string
+        name: string
+        stock: number
+        minStock: number
+      }>
+    }
+    const lowStockByCategory = (categoriesWithStock as CategoryWithStock[])
+      .map(cat => {
+        const lowStockItems = cat.products.filter(p => p.stock <= p.minStock)
+        return {
+          id: cat.id,
+          name: cat.name,
+          totalProducts: cat.products.length,
+          lowStockCount: lowStockItems.length,
+          outOfStockCount: cat.products.filter(p => p.stock === 0).length,
+          products: lowStockItems.slice(0, 5).map(p => ({
+            id: p.id,
+            name: p.name,
+            stock: p.stock,
+            minStock: p.minStock,
+          })),
+        }
+      })
+      .filter(cat => cat.lowStockCount > 0)
+      .sort((a, b) => b.lowStockCount - a.lowStockCount)
+
     // Tipo para las reservas recientes
     type RecentReservation = {
       id: string
@@ -205,6 +295,8 @@ export async function GET(req: NextRequest) {
       totalModels,
       topProducts,
       topBrands,
+      topClients,
+      lowStockByCategory,
       recentReservations: (recentReservations as RecentReservation[]).map((r) => ({
         id: r.id,
         createdAt: r.createdAt.toISOString(),

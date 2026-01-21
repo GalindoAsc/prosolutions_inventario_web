@@ -282,8 +282,7 @@ export default async function AdminDashboard() {
                   <div>
                     <p className="font-medium">{product.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {product.model.brand.name} {product.model.name} -{" "}
-                      {product.category.name}
+                      {product.models[0]?.model.brand.name} {product.models[0]?.model.name} - {product.category.name}
                     </p>
                   </div>
                   <div className="text-right">

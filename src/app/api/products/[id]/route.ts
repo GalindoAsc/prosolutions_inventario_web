@@ -190,6 +190,8 @@ export async function PUT(
             productId: id,
             type: stockDiff > 0 ? "IN" : "OUT",
             quantity: Math.abs(stockDiff),
+            previousStock: existingProduct.stock,
+            newStock: parseInt(stock),
             reason: "ADJUSTMENT",
             notes: "Ajuste manual de stock desde edición de producto",
             userId: session.user.id,
@@ -229,7 +231,7 @@ export async function DELETE(
       include: {
         reservations: {
           where: {
-            status: { in: ["PENDING", "DEPOSIT_RECEIVED", "DEPOSIT_VERIFIED"] },
+            status: { in: ["PENDING", "DEPOSIT_VERIFIED"] },
           },
         },
       },

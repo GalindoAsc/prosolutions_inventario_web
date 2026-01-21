@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
 // Tipo para status de reserva (del schema)
-type ReservationStatusType = "PENDING" | "DEPOSIT_RECEIVED" | "DEPOSIT_VERIFIED" | "COMPLETED" | "CANCELLED" | "EXPIRED"
+type ReservationStatusType = "PENDING" | "DEPOSIT_VERIFIED" | "APPROVED" | "REJECTED" | "COMPLETED" | "CANCELLED" | "EXPIRED"
 
 type TransactionClient = Omit<
   typeof prisma,

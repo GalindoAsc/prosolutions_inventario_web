@@ -214,6 +214,7 @@ model InventoryMovement {
   previousStock Int
   newStock      Int
   reason        String?
+  notes         String? // Comentario o nota opcional sobre el movimiento
 
   productId     String
   userId        String?      // Quien hizo el movimiento

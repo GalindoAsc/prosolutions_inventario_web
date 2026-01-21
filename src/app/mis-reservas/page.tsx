@@ -86,7 +86,9 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 }
 
 export default function MisReservasPage() {
-  const { data: session, status } = useSession()
+  const sessionData = useSession()
+  const session = sessionData?.data
+  const status = sessionData?.status
   const router = useRouter()
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [isLoading, setIsLoading] = useState(true)

@@ -20,12 +20,30 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
     networks:
       - prosolutions-network
+
+  # Migration service - uses builder stage with full node_modules
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: prosolutions-migrate
+    environment:
+      - DATABASE_URL=postgresql://prosolutions:prosolutions123@db:5432/prosolutions_db?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - prosolutions-network
+    command: [ "npx", "prisma", "db", "push", "--skip-generate" ]
+    profiles:
+      - migrate
 
   db:
     image: postgres:16-alpine
@@ -38,7 +56,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prosolutions -d prosolutions_db"]
+      test: [ "CMD-SHELL", "pg_isready -U prosolutions -d prosolutions_db" ]
       interval: 5s
       timeout: 5s
       retries: 5

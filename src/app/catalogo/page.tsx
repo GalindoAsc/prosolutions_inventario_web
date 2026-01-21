@@ -29,6 +29,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CurrencyToggleCompact } from "@/components/currency-toggle"
 import { useCurrency } from "@/components/currency-provider"
@@ -279,8 +287,154 @@ export default function CatalogoPage() {
     )
   }
 
+  // Reservation state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [reservationOpen, setReservationOpen] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [reservationType, setReservationType] = useState<"TEMPORARY" | "DEPOSIT">("TEMPORARY")
+  const [reserving, setReserving] = useState(false)
+
+  const handleReserveClick = (product: Product) => {
+    setSelectedProduct(product)
+    setQuantity(1)
+    setReservationType("TEMPORARY")
+    setReservationOpen(true)
+  }
+
+  const handleReserve = async () => {
+    if (!selectedProduct) return
+
+    setReserving(true)
+    try {
+      const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: selectedProduct.id,
+          quantity,
+          type: reservationType,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al reservar")
+      }
+
+      // Success
+      setReservationOpen(false)
+      // Re-fetch products to update stock
+      setSelectedBrand((prev) => prev) // Trigger re-fetch
+
+      // Could add toast here
+      alert("Reserva creada exitosamente! Ve a 'Mis Reservas' para ver detalles.")
+      router.push("/mis-reservas")
+    } catch (error: any) {
+      console.error("Error reserving:", error)
+      alert(error.message || "Error al crear la reserva")
+    } finally {
+      setReserving(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {/* Reservation Dialog */}
+      <Dialog open={reservationOpen} onOpenChange={setReservationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reservar Producto</DialogTitle>
+            <DialogDescription>
+              {selectedProduct?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Precio Unitario:</span>
+              <span className="font-bold text-primary">
+                {selectedProduct && formatPrice(
+                  customerType === "WHOLESALE"
+                    ? selectedProduct.wholesalePrice
+                    : selectedProduct.retailPrice
+                )}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cantidad</label>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                >
+                  -
+                </Button>
+                <span className="w-12 text-center font-bold">{quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(Math.min(selectedProduct?.stock || 1, quantity + 1))}
+                  disabled={quantity >= (selectedProduct?.stock || 1)}
+                >
+                  +
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-right">
+                Disponibles: {selectedProduct?.stock}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Reserva</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={reservationType === "TEMPORARY" ? "default" : "outline"}
+                  onClick={() => setReservationType("TEMPORARY")}
+                  className="h-auto py-2 flex flex-col gap-1"
+                >
+                  <span>Temporal</span>
+                  <span className="text-[10px] font-normal opacity-80">30 min</span>
+                </Button>
+                <Button
+                  variant={reservationType === "DEPOSIT" ? "default" : "outline"}
+                  onClick={() => setReservationType("DEPOSIT")}
+                  className="h-auto py-2 flex flex-col gap-1"
+                  disabled // Deshabilitado por ahora hasta implementar subida de comprobante
+                  title="Próximamente"
+                >
+                  <span>Con Depósito</span>
+                  <span className="text-[10px] font-normal opacity-80">24 horas</span>
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t flex justify-between items-end">
+              <span className="text-sm font-medium">Total a Pagar:</span>
+              <span className="text-xl font-bold text-primary">
+                {selectedProduct && formatPrice(
+                  (customerType === "WHOLESALE"
+                    ? selectedProduct.wholesalePrice
+                    : selectedProduct.retailPrice) * quantity
+                )}
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReservationOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleReserve} disabled={reserving}>
+              {reserving ? "Reservando..." : "Confirmar Reserva"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto max-w-7xl flex h-14 items-center justify-between px-4 gap-2">
@@ -432,7 +586,7 @@ export default function CatalogoPage() {
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                 {products.map((product) => (
-                  <Card key={product.id} className="overflow-hidden group hover:shadow-md transition-shadow">
+                  <Card key={product.id} className="overflow-hidden group hover:shadow-md transition-shadow relative">
                     <div className="aspect-square relative bg-gradient-to-br from-muted to-muted/50">
                       {product.images[0] ? (
                         <Image
@@ -446,6 +600,7 @@ export default function CatalogoPage() {
                           <Package className="h-12 w-12 text-muted-foreground/40" />
                         </div>
                       )}
+
                       {/* Stock badge */}
                       {product.stock > 0 && product.stock <= product.minStock && (
                         <Badge variant="destructive" className="absolute top-2 right-2 text-[10px] px-1.5">
@@ -461,6 +616,22 @@ export default function CatalogoPage() {
                         <Badge variant="default" className="absolute top-2 right-2 text-[10px] px-1.5 bg-green-600">
                           {product.stock} UD
                         </Badge>
+                      )}
+
+                      {/* Add button overlay on desktop, always visible on mobile if stock > 0 */}
+                      {product.stock > 0 && (
+                        <div className="absolute bottom-2 right-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="sm"
+                            className="h-8 w-8 rounded-full shadow-lg p-0"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleReserveClick(product)
+                            }}
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                     <CardContent className="p-3">

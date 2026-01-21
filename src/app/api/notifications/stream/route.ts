@@ -42,9 +42,27 @@ export function sendNotificationToAdmins(notification: Omit<NotificationPayload,
 export async function GET(req: NextRequest) {
   const session = await auth()
 
-  // Solo admins pueden conectarse
+  // Solo admins pueden conectarse - enviar SSE de error en lugar de JSON
   if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    const errorStream = new ReadableStream({
+      start(controller) {
+        const errorEvent = `data: ${JSON.stringify({
+          type: "error",
+          code: "UNAUTHORIZED",
+          message: "No autorizado para recibir notificaciones",
+          timestamp: new Date().toISOString(),
+        })}\n\n`
+        controller.enqueue(new TextEncoder().encode(errorEvent))
+        controller.close()
+      },
+    })
+
+    return new Response(errorStream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    })
   }
 
   const connectionId = crypto.randomUUID()

@@ -15,8 +15,10 @@ import {
   ScanBarcode,
   AlertTriangle,
   Eye,
-  EyeOff,
-  Globe,
+  LayoutGrid,
+  Grid3X3,
+  List,
+  Edit,
 } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
 
@@ -43,11 +45,14 @@ interface Product {
   category: { name: string }
 }
 
+type ViewMode = "grid-large" | "grid-small" | "list"
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<"all" | "low-stock" | "public">("all")
+  const [viewMode, setViewMode] = useState<ViewMode>("grid-large")
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -68,6 +73,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
   const handleSearch = (e: React.FormEvent) => {
@@ -78,6 +84,20 @@ export default function ProductsPage() {
   const filteredProducts = filter === "public"
     ? products.filter((p) => p.isPublic)
     : products
+
+  const getModelText = (product: Product) => {
+    if (product.isUniversal) return "Universal"
+    return product.models
+      .slice(0, 2)
+      .map((pm) => `${pm.model.brand.name} ${pm.model.name}`)
+      .join(", ") + (product.models.length > 2 ? ` +${product.models.length - 2}` : "")
+  }
+
+  const getStockVariant = (product: Product): "destructive" | "warning" | "success" => {
+    if (product.stock === 0) return "destructive"
+    if (product.stock <= product.minStock) return "warning"
+    return "success"
+  }
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -105,150 +125,303 @@ export default function ProductsPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre o código..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">
-            Buscar
-          </Button>
-        </form>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre o código..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Buscar
+            </Button>
+          </form>
+        </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("all")}
-          >
-            Todos
-          </Button>
-          <Button
-            variant={filter === "low-stock" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("low-stock")}
-          >
-            <AlertTriangle className="mr-1 h-4 w-4" />
-            Stock bajo
-          </Button>
-          <Button
-            variant={filter === "public" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("public")}
-          >
-            <Eye className="mr-1 h-4 w-4" />
-            Públicos
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex gap-2">
+            <Button
+              variant={filter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("all")}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={filter === "low-stock" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("low-stock")}
+            >
+              <AlertTriangle className="mr-1 h-4 w-4" />
+              Stock bajo
+            </Button>
+            <Button
+              variant={filter === "public" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilter("public")}
+            >
+              <Eye className="mr-1 h-4 w-4" />
+              Públicos
+            </Button>
+          </div>
+
+          {/* View Mode Selector */}
+          <div className="flex items-center gap-1 border rounded-lg p-1">
+            <Button
+              variant={viewMode === "grid-large" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode("grid-large")}
+              title="Cuadrícula grande"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "grid-small" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode("grid-small")}
+              title="Cuadrícula pequeña"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode("list")}
+              title="Lista"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Products Grid */}
+      {/* Products Display */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : filteredProducts.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredProducts.map((product) => (
-            <Link key={product.id} href={`/admin/productos/${product.id}`}>
-              <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full">
-                <div className="aspect-square relative bg-muted">
-                  {product.images[0] ? (
-                    <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <Package className="h-16 w-16 text-muted-foreground/50" />
+        <>
+          {/* Grid Large View */}
+          {viewMode === "grid-large" && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product) => (
+                <Link key={product.id} href={`/admin/productos/${product.id}`}>
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full group">
+                    <div className="aspect-[4/3] relative bg-gradient-to-br from-muted to-muted/50">
+                      {product.images[0] ? (
+                        <Image
+                          src={product.images[0]}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center text-muted-foreground/40">
+                            <Package className="h-12 w-12 mx-auto mb-2" />
+                            <span className="text-xs">Sin imagen</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <Button size="sm" variant="secondary">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                      </div>
+
+                      {/* Status badges */}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        {product.isPublic && (
+                          <Badge variant="outline" className="bg-background/80 backdrop-blur-sm text-xs">
+                            <Eye className="mr-1 h-3 w-3" />
+                            Público
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Stock badge */}
+                      <Badge
+                        variant={getStockVariant(product)}
+                        className="absolute top-2 right-2"
+                      >
+                        {product.stock} uds
+                      </Badge>
                     </div>
-                  )}
 
-                  {/* Status badges */}
-                  <div className="absolute top-2 left-2 flex flex-col gap-1">
-                    {product.isUniversal && (
-                      <Badge variant="secondary">
-                        <Globe className="mr-1 h-3 w-3" />
-                        Universal
+                    <CardContent className="p-4">
+                      <div className="text-xs text-muted-foreground mb-1 truncate">
+                        {getModelText(product)}
+                      </div>
+                      <h3 className="font-medium line-clamp-2 mb-2 min-h-[2.5rem]">
+                        {product.name}
+                      </h3>
+                      <Badge variant="outline" className="mb-3 text-xs">
+                        {product.category.name}
                       </Badge>
-                    )}
-                    {product.isPublic ? (
-                      <Badge variant="outline" className="bg-background">
-                        <Eye className="mr-1 h-3 w-3" />
-                        Público
+
+                      <div className="flex justify-between items-end">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Menudeo</p>
+                          <p className="font-bold text-primary">
+                            {formatPrice(product.retailPrice)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Mayoreo</p>
+                          <p className="font-semibold text-cyan-500">
+                            {formatPrice(product.wholesalePrice)}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Grid Small View */}
+          {viewMode === "grid-small" && (
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {filteredProducts.map((product) => (
+                <Link key={product.id} href={`/admin/productos/${product.id}`}>
+                  <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full group">
+                    <div className="aspect-square relative bg-gradient-to-br from-muted to-muted/50">
+                      {product.images[0] ? (
+                        <Image
+                          src={product.images[0]}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <Package className="h-8 w-8 text-muted-foreground/30" />
+                        </div>
+                      )}
+
+                      {/* Stock badge */}
+                      <Badge
+                        variant={getStockVariant(product)}
+                        className="absolute top-1 right-1 text-[10px] px-1.5 py-0"
+                      >
+                        {product.stock}
                       </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-background">
-                        <EyeOff className="mr-1 h-3 w-3" />
-                        Privado
-                      </Badge>
-                    )}
-                  </div>
 
-                  {/* Stock badge */}
-                  <div className="absolute top-2 right-2">
-                    <Badge
-                      variant={
-                        product.stock === 0
-                          ? "destructive"
-                          : product.stock <= product.minStock
-                          ? "warning"
-                          : "success"
-                      }
-                    >
-                      {product.stock} uds
-                    </Badge>
-                  </div>
-                </div>
+                      {product.isPublic && (
+                        <div className="absolute top-1 left-1">
+                          <Eye className="h-3 w-3 text-white drop-shadow-md" />
+                        </div>
+                      )}
+                    </div>
 
-                <CardContent className="p-4">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {product.isUniversal
-                      ? "Universal"
-                      : product.models
-                          .map((pm) => `${pm.model.brand.name} ${pm.model.name}`)
-                          .join(", ")}
-                  </div>
-                  <h3 className="font-medium line-clamp-2 mb-2">
-                    {product.name}
-                  </h3>
-                  <Badge variant="outline" className="mb-3">
-                    {product.category.name}
-                  </Badge>
-
-                  {product.barcode && (
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Código: {product.barcode}
-                    </p>
-                  )}
-
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Menudeo</p>
-                      <p className="font-bold text-primary">
+                    <CardContent className="p-2">
+                      <h3 className="font-medium text-xs line-clamp-2 mb-1">
+                        {product.name}
+                      </h3>
+                      <p className="font-bold text-primary text-sm">
                         {formatPrice(product.retailPrice)}
                       </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Mayoreo</p>
-                      <p className="font-semibold text-secondary">
-                        {formatPrice(product.wholesalePrice)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* List View */}
+          {viewMode === "list" && (
+            <div className="space-y-2">
+              {/* Header */}
+              <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="col-span-5">Producto</div>
+                <div className="col-span-2">Categoría</div>
+                <div className="col-span-1 text-center">Stock</div>
+                <div className="col-span-2 text-right">Menudeo</div>
+                <div className="col-span-2 text-right">Mayoreo</div>
+              </div>
+
+              {filteredProducts.map((product) => (
+                <Link key={product.id} href={`/admin/productos/${product.id}`}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="p-0">
+                      <div className="grid grid-cols-12 gap-4 items-center p-4">
+                        {/* Image + Name */}
+                        <div className="col-span-12 md:col-span-5 flex items-center gap-3">
+                          <div className="w-12 h-12 relative bg-muted rounded-lg flex-shrink-0 overflow-hidden">
+                            {product.images[0] ? (
+                              <Image
+                                src={product.images[0]}
+                                alt={product.name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full">
+                                <Package className="h-5 w-5 text-muted-foreground/30" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-medium truncate">{product.name}</h3>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {getModelText(product)}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 md:hidden">
+                            {product.isPublic && (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Category */}
+                        <div className="col-span-6 md:col-span-2">
+                          <Badge variant="outline" className="text-xs">
+                            {product.category.name}
+                          </Badge>
+                        </div>
+
+                        {/* Stock */}
+                        <div className="col-span-6 md:col-span-1 text-right md:text-center">
+                          <Badge variant={getStockVariant(product)}>
+                            {product.stock}
+                          </Badge>
+                        </div>
+
+                        {/* Prices */}
+                        <div className="col-span-6 md:col-span-2 text-left md:text-right">
+                          <span className="text-xs text-muted-foreground md:hidden">Menudeo: </span>
+                          <span className="font-bold text-primary">
+                            {formatPrice(product.retailPrice)}
+                          </span>
+                        </div>
+                        <div className="col-span-6 md:col-span-2 text-right">
+                          <span className="text-xs text-muted-foreground md:hidden">Mayoreo: </span>
+                          <span className="font-semibold text-cyan-500">
+                            {formatPrice(product.wholesalePrice)}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
           <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />

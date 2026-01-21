@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, ArrowLeft, Plus, X, ScanBarcode, Globe } from "lucide-react"
+import { Loader2, ArrowLeft, Plus, X, ScanBarcode, Globe, Trash2 } from "lucide-react"
 import { ImageUpload } from "@/components/image-upload"
 import Link from "next/link"
+import Image from "next/image"
 
 interface Brand {
   id: string
@@ -27,11 +28,31 @@ interface Category {
   name: string
 }
 
-export default function NewProductPage() {
+interface Product {
+  id: string
+  name: string
+  description: string | null
+  barcode: string | null
+  retailPrice: number | null
+  wholesalePrice: number | null
+  stock: number
+  minStock: number
+  categoryId: string
+  isPublic: boolean
+  isUniversal: boolean
+  isActive: boolean
+  images: string[]
+  models: Model[]
+}
+
+export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState("")
+  const [product, setProduct] = useState<Product | null>(null)
 
   const [brands, setBrands] = useState<Brand[]>([])
   const [models, setModels] = useState<Model[]>([])
@@ -53,32 +74,58 @@ export default function NewProductPage() {
     categoryId: "",
     isPublic: false,
     isUniversal: false,
+    isActive: true,
   })
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [brandsRes, modelsRes, categoriesRes] = await Promise.all([
+        const [productRes, brandsRes, modelsRes, categoriesRes] = await Promise.all([
+          fetch(`/api/products/${resolvedParams.id}`),
           fetch("/api/brands"),
           fetch("/api/models"),
           fetch("/api/categories"),
         ])
-        const [brandsData, modelsData, categoriesData] = await Promise.all([
+
+        if (!productRes.ok) {
+          throw new Error("Producto no encontrado")
+        }
+
+        const [productData, brandsData, modelsData, categoriesData] = await Promise.all([
+          productRes.json(),
           brandsRes.json(),
           modelsRes.json(),
           categoriesRes.json(),
         ])
+
+        setProduct(productData)
         setBrands(brandsData)
         setModels(modelsData)
         setCategories(categoriesData)
+        setSelectedModels(productData.models || [])
+        setImages(productData.images || [])
+
+        setFormData({
+          name: productData.name,
+          description: productData.description || "",
+          barcode: productData.barcode || "",
+          retailPrice: productData.retailPrice?.toString() || "",
+          wholesalePrice: productData.wholesalePrice?.toString() || "",
+          stock: productData.stock.toString(),
+          minStock: productData.minStock.toString(),
+          categoryId: productData.categoryId,
+          isPublic: productData.isPublic,
+          isUniversal: productData.isUniversal,
+          isActive: productData.isActive,
+        })
       } catch {
-        setError("Error al cargar datos")
+        setError("Error al cargar producto")
       } finally {
         setLoading(false)
       }
     }
     fetchData()
-  }, [])
+  }, [resolvedParams.id])
 
   useEffect(() => {
     if (selectedBrand) {
@@ -110,8 +157,8 @@ export default function NewProductPage() {
     }
 
     try {
-      const res = await fetch("/api/products", {
-        method: "POST",
+      const res = await fetch(`/api/products/${resolvedParams.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
@@ -122,7 +169,7 @@ export default function NewProductPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Error al crear producto")
+        setError(data.error || "Error al actualizar producto")
         return
       }
 
@@ -134,6 +181,31 @@ export default function NewProductPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirm("¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.")) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/products/${resolvedParams.id}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.error || "Error al eliminar producto")
+        return
+      }
+
+      router.push("/admin/productos")
+    } catch {
+      setError("Error al eliminar")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -142,20 +214,46 @@ export default function NewProductPage() {
     )
   }
 
+  if (!product) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-destructive">Producto no encontrado</p>
+        <Button asChild>
+          <Link href="/admin/productos">Volver</Link>
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/productos">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Nuevo Producto</h2>
-          <p className="text-muted-foreground">
-            Agrega una nueva refacción al inventario
-          </p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/admin/productos">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Editar Producto</h2>
+            <p className="text-muted-foreground">
+              Modifica la información del producto
+            </p>
+          </div>
         </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={handleDelete}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4 mr-2" />
+          )}
+          Eliminar
+        </Button>
       </div>
 
       {error && (
@@ -163,6 +261,23 @@ export default function NewProductPage() {
           {error}
         </div>
       )}
+
+      {/* Imágenes */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Fotografías</CardTitle>
+          <CardDescription>
+            Agrega hasta 5 imágenes del producto. La primera será la imagen principal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUpload
+            images={images}
+            onChange={setImages}
+            maxImages={5}
+          />
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid gap-6 lg:grid-cols-2">
@@ -231,23 +346,6 @@ export default function NewProductPage() {
             </CardContent>
           </Card>
 
-          {/* Images */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Fotografías</CardTitle>
-              <CardDescription>
-                Agrega hasta 5 imágenes del producto. La primera será la imagen principal.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ImageUpload
-                images={images}
-                onChange={setImages}
-                maxImages={5}
-              />
-            </CardContent>
-          </Card>
-
           {/* Pricing */}
           <Card>
             <CardHeader>
@@ -285,7 +383,7 @@ export default function NewProductPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="stock">Stock inicial</Label>
+                  <Label htmlFor="stock">Stock actual</Label>
                   <Input
                     id="stock"
                     type="number"
@@ -307,6 +405,19 @@ export default function NewProductPage() {
               </div>
 
               <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="isActive" className="cursor-pointer">
+                    Producto activo (visible en catálogo)
+                  </Label>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -429,7 +540,7 @@ export default function NewProductPage() {
           </Button>
           <Button type="submit" disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar Producto
+            Guardar Cambios
           </Button>
         </div>
       </form>

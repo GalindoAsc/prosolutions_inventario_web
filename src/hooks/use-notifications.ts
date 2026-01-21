@@ -32,8 +32,22 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const [unreadCount, setUnreadCount] = useState(0)
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectAttemptsRef = useRef(0)
+  const maxReconnectAttempts = 5
+  const onNotificationRef = useRef(onNotification)
+  
+  // Actualizar ref cuando cambia onNotification
+  useEffect(() => {
+    onNotificationRef.current = onNotification
+  }, [onNotification])
 
   const connect = useCallback(() => {
+    // Evitar reconexiones excesivas
+    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      console.log("SSE: Máximo de intentos de reconexión alcanzado")
+      return
+    }
+    
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
     }
@@ -43,12 +57,21 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
     eventSource.onopen = () => {
       setIsConnected(true)
+      reconnectAttemptsRef.current = 0 // Reset intentos al conectar
       console.log("SSE: Conectado a notificaciones")
     }
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
+        
+        // Si recibimos error de autenticación, no reconectar
+        if (data.type === "error" && data.code === "UNAUTHORIZED") {
+          console.log("SSE: No autorizado, desconectando")
+          eventSource.close()
+          setIsConnected(false)
+          return
+        }
         
         if (data.type === "connected") {
           setIsConnected(true)
@@ -67,7 +90,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
         setNotifications((prev) => [notification, ...prev])
         setUnreadCount((prev) => prev + 1)
-        onNotification?.(notification)
+        onNotificationRef.current?.(notification)
       } catch (error) {
         console.error("SSE: Error parsing message", error)
       }
@@ -76,18 +99,22 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     eventSource.onerror = () => {
       setIsConnected(false)
       eventSource.close()
+      reconnectAttemptsRef.current += 1
       
-      // Reconectar después de 5 segundos
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-      }
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (enabled) {
-          connect()
+      // Reconectar con backoff exponencial
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current - 1), 30000)
+        console.log(`SSE: Reconectando en ${delay/1000}s (intento ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
+        
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current)
         }
-      }, 5000)
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect()
+        }, delay)
+      }
     }
-  }, [enabled, onNotification])
+  }, [])
 
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -97,6 +124,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
     }
+    reconnectAttemptsRef.current = 0
     setIsConnected(false)
   }, [])
 
@@ -119,6 +147,11 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setUnreadCount(0)
   }, [])
 
+  const resetAndReconnect = useCallback(() => {
+    reconnectAttemptsRef.current = 0
+    connect()
+  }, [connect])
+
   useEffect(() => {
     if (enabled) {
       connect()
@@ -129,7 +162,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     return () => {
       disconnect()
     }
-  }, [enabled, connect, disconnect])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled])
 
   return {
     notifications,
@@ -138,6 +172,6 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     markAsRead,
     markAllAsRead,
     clearNotifications,
-    reconnect: connect,
+    reconnect: resetAndReconnect,
   }
 }

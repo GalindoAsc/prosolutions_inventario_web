@@ -42,9 +42,10 @@ export function CurrencyToggleCompact({ className }: { className?: string }) {
 
   return (
     <button
+      type="button"
       onClick={() => setCurrency(currency === "MXN" ? "USD" : "MXN")}
       className={cn(
-        "relative flex items-center h-8 w-16 rounded-full p-1 transition-colors",
+        "relative flex items-center h-8 w-16 rounded-full p-1 transition-colors cursor-pointer hover:opacity-90 active:scale-95",
         currency === "MXN" ? "bg-green-600" : "bg-blue-600",
         className
       )}
@@ -61,13 +62,13 @@ export function CurrencyToggleCompact({ className }: { className?: string }) {
       </span>
       {/* Labels */}
       <span className={cn(
-        "absolute left-2 text-[10px] font-bold text-white/90",
+        "absolute left-2 text-[10px] font-bold text-white/90 user-select-none",
         currency === "MXN" ? "opacity-0" : "opacity-100"
       )}>
         MX
       </span>
       <span className={cn(
-        "absolute right-2 text-[10px] font-bold text-white/90",
+        "absolute right-2 text-[10px] font-bold text-white/90 user-select-none",
         currency === "USD" ? "opacity-0" : "opacity-100"
       )}>
         US

@@ -3,7 +3,7 @@
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { CurrencyToggle } from "@/components/currency-toggle"
+import { CurrencyToggleCompact } from "@/components/currency-toggle"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { SearchBar } from "@/components/search-bar"
@@ -46,7 +46,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
 
           <NotificationsDropdown />
 
-          <CurrencyToggle />
+          <CurrencyToggleCompact />
 
           <ThemeToggle />
 

@@ -61,147 +61,161 @@ export default function PerfilClient({ user }: { user: UserData }) {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-muted/40 pb-24">
             {/* Header */}
             <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container mx-auto max-w-4xl flex h-16 items-center justify-between px-4">
+                <div className="container mx-auto max-w-lg flex h-16 items-center justify-between px-4">
                     <Link href="/" className="flex items-center gap-2">
-                        <Home className="h-5 w-5" />
-                        <span className="font-bold">Pro-Solutions</span>
+                        <Home className="h-5 w-5 text-primary" />
+                        <span className="font-bold text-lg tracking-tight">Pro-Solutions</span>
                     </Link>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <CurrencyToggleCompact />
                         <ThemeToggle />
                     </div>
                 </div>
             </header>
 
-            <main className="container mx-auto max-w-4xl px-4 py-8">
-                <div className="space-y-6">
-                    {/* Profile Card */}
-                    <Card>
-                        <CardHeader className="pb-4">
-                            <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <User className="h-8 w-8 text-primary" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-xl">{user?.name || "Usuario"}</CardTitle>
-                                        <CardDescription className="flex items-center gap-2 mt-1">
-                                            {user?.role === "ADMIN" ? (
-                                                <span className="flex items-center gap-1">
-                                                    <Shield className="h-3 w-3" />
-                                                    Administrador
-                                                </span>
-                                            ) : (
-                                                <span>Cliente</span>
-                                            )}
-                                        </CardDescription>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1 items-end">
+            <main className="container mx-auto max-w-lg px-4 py-6 space-y-6">
+                {/* Welcome & Status */}
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-2xl font-bold tracking-tight">Hola, {user.name?.split(" ")[0]}</h1>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <span>{user.email}</span>
+                        {user.role === "ADMIN" && <Badge variant="outline" className="text-xs">Admin</Badge>}
+                    </div>
+                </div>
+
+                {/* Profile Card */}
+                <Card className="border-none shadow-md bg-gradient-to-br from-background to-muted overflow-hidden">
+                    <CardContent className="p-6 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center border-2 border-background shadow-sm">
+                                <User className="h-7 w-7 text-primary" />
+                            </div>
+                            <div>
+                                <div className="text-sm text-muted-foreground font-medium mb-1">Estado de Cuenta</div>
+                                <div className="flex gap-2">
                                     {getStatusBadge(user?.status || "")}
                                     {user?.role !== "ADMIN" && getCustomerTypeBadge(user?.customerType || "")}
                                 </div>
                             </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Contact Info */}
-                            <div className="grid gap-3">
-                                {user?.email && (
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <Mail className="h-4 w-4 text-muted-foreground" />
-                                        <span>{user.email}</span>
-                                    </div>
-                                )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Account Pending Alert */}
+                {user?.status === "PENDING" && (
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-950/30 rounded-xl border border-yellow-200 dark:border-yellow-800/50 shadow-sm">
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-full">
+                                <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                             </div>
-
-                            {/* Account Status */}
-                            {user?.status === "PENDING" && (
-                                <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                    <div className="flex items-start gap-3">
-                                        <Clock className="h-5 w-5 text-yellow-600 mt-0.5" />
-                                        <div>
-                                            <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                                                Cuenta pendiente de aprobación
-                                            </p>
-                                            <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                                                Tu cuenta está siendo revisada. Te notificaremos cuando sea aprobada.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Quick Actions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Acceso Rápido</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {user?.role === "ADMIN" ? (
-                                    <>
-                                        <Button variant="outline" className="justify-start h-auto py-3" asChild>
-                                            <Link href="/admin">
-                                                <Package className="mr-3 h-5 w-5" />
-                                                <div className="text-left">
-                                                    <div className="font-medium">Panel Admin</div>
-                                                    <div className="text-xs text-muted-foreground">Gestionar inventario</div>
-                                                </div>
-                                            </Link>
-                                        </Button>
-                                        <Button variant="outline" className="justify-start h-auto py-3" asChild>
-                                            <Link href="/admin/reservas">
-                                                <ShoppingCart className="mr-3 h-5 w-5" />
-                                                <div className="text-left">
-                                                    <div className="font-medium">Reservas</div>
-                                                    <div className="text-xs text-muted-foreground">Ver solicitudes</div>
-                                                </div>
-                                            </Link>
-                                        </Button>
-                                    </>
-                                ) : user?.status === "APPROVED" ? (
-                                    <>
-                                        <Button variant="outline" className="justify-start h-auto py-3" asChild>
-                                            <Link href="/">
-                                                <Package className="mr-3 h-5 w-5" />
-                                                <div className="text-left">
-                                                    <div className="font-medium">Catálogo</div>
-                                                    <div className="text-xs text-muted-foreground">Ver productos</div>
-                                                </div>
-                                            </Link>
-                                        </Button>
-                                        <Button variant="outline" className="justify-start h-auto py-3" asChild>
-                                            <Link href="/mis-reservas">
-                                                <CalendarCheck className="mr-3 h-5 w-5" />
-                                                <div className="text-left">
-                                                    <div className="font-medium">Mis Reservas</div>
-                                                    <div className="text-xs text-muted-foreground">Ver estado</div>
-                                                </div>
-                                            </Link>
-                                        </Button>
-                                    </>
-                                ) : (
-                                    <div className="col-span-2 text-center text-muted-foreground py-4">
-                                        Las funciones estarán disponibles cuando tu cuenta sea aprobada
-                                    </div>
-                                )}
+                            <div>
+                                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                                    Cuenta en Revisión
+                                </h3>
+                                <p className="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
+                                    Estamos verificando tus datos. Te notificaremos cuando tu cuenta sea aprobada para que puedas realizar pedidos.
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
+                )}
 
-                    {/* Logout */}
+                {/* Quick Actions Grid */}
+                <div className="grid gap-4">
+                    <h2 className="text-lg font-semibold">Acciones Rápidas</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                        {user?.role === "ADMIN" ? (
+                            <>
+                                <Link href="/admin" className="block">
+                                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer border-l-4 border-l-primary">
+                                        <CardContent className="p-4 flex flex-col items-start gap-3">
+                                            <div className="p-2 rounded-md bg-primary/10">
+                                                <Package className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold">Panel Admin</div>
+                                                <div className="text-xs text-muted-foreground">Gestionar todo</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                                <Link href="/admin/reservas" className="block">
+                                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer border-l-4 border-l-orange-500">
+                                        <CardContent className="p-4 flex flex-col items-start gap-3">
+                                            <div className="p-2 rounded-md bg-orange-500/10">
+                                                <ShoppingCart className="h-5 w-5 text-orange-500" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold">Reservas</div>
+                                                <div className="text-xs text-muted-foreground">Ver solicitudes</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                                <Link href="/admin/productos" className="block">
+                                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer border-l-4 border-l-blue-500">
+                                        <CardContent className="p-4 flex flex-col items-start gap-3">
+                                            <div className="p-2 rounded-md bg-blue-500/10">
+                                                <Package className="h-5 w-5 text-blue-500" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold">Productos</div>
+                                                <div className="text-xs text-muted-foreground">Inv. y Precios</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            </>
+                        ) : user?.status === "APPROVED" ? (
+                            <>
+                                <Link href="/" className="block">
+                                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer border-l-4 border-l-primary">
+                                        <CardContent className="p-4 flex flex-col items-start gap-3">
+                                            <div className="p-2 rounded-md bg-primary/10">
+                                                <Package className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold">Catálogo</div>
+                                                <div className="text-xs text-muted-foreground">Ver productos</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                                <Link href="/mis-reservas" className="block">
+                                    <Card className="h-full hover:bg-muted/50 transition-colors cursor-pointer border-l-4 border-l-green-500">
+                                        <CardContent className="p-4 flex flex-col items-start gap-3">
+                                            <div className="p-2 rounded-md bg-green-500/10">
+                                                <CalendarCheck className="h-5 w-5 text-green-500" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold">Mis Reservas</div>
+                                                <div className="text-xs text-muted-foreground">Historial y estado</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            </>
+                        ) : (
+                            <div className="col-span-2 py-8 text-center text-muted-foreground bg-muted/30 rounded-lg border border-dashed">
+                                <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                <p>Menú deshabilitado hasta aprobación</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Account Actions */}
+                <div className="space-y-3 pt-4">
                     <Button
-                        variant="destructive"
-                        className="w-full"
+                        variant="outline"
+                        className="w-full justify-start h-12 text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         onClick={handleLogout}
                         disabled={isLoggingOut}
                     >
-                        <LogOut className="mr-2 h-4 w-4" />
+                        <LogOut className="mr-3 h-5 w-5" />
                         {isLoggingOut ? "Cerrando sesión..." : "Cerrar Sesión"}
                     </Button>
                 </div>

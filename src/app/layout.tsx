@@ -3,6 +3,9 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { CurrencyProvider } from "@/components/currency-provider"
+import { SessionProvider } from "@/components/session-provider"
+import { MobileNav } from "@/components/mobile-nav"
+import { auth } from "@/lib/auth"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,24 +42,30 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await auth()
+  const isAdmin = session?.user?.role === "ADMIN"
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <CurrencyProvider>
-            {children}
-          </CurrencyProvider>
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <CurrencyProvider>
+              {children}
+            </CurrencyProvider>
+            <MobileNav isAdmin={isAdmin} />
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

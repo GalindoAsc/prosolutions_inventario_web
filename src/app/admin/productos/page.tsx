@@ -62,7 +62,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<"all" | "low-stock" | "public">("all")
-  const [viewMode, setViewMode] = useState<ViewMode>("grid-large")
+  const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)

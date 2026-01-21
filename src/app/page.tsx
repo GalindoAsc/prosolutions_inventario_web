@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { CurrencyToggleCompact } from "@/components/currency-toggle"
 import { ProductGrid } from "@/components/product-grid"
+import { MobileNav } from "@/components/mobile-nav"
 import { prisma } from "@/lib/prisma"
-import { Smartphone, LogIn, UserPlus, LayoutDashboard, ShoppingCart, User, CalendarCheck } from "lucide-react"
+import { LogIn, UserPlus, LayoutDashboard, ShoppingCart, User, CalendarCheck, Search, ArrowRight } from "lucide-react"
 
 async function getPublicProducts() {
   try {
@@ -61,66 +62,43 @@ export default async function HomePage() {
   const isApproved = session?.user?.status === "APPROVED"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
+        <div className="container mx-auto max-w-7xl flex h-14 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/logo.jpg"
               alt="Pro-Solutions"
-              width={40}
-              height={40}
+              width={36}
+              height={36}
               className="rounded-lg"
             />
-            <span className="font-bold text-lg hidden sm:inline">Pro-Solutions</span>
+            <span className="font-bold hidden sm:inline">Pro-Solutions</span>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <CurrencyToggleCompact />
             <ThemeToggle />
             {isLoggedIn ? (
               isAdmin ? (
-                <>
-                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                    <Link href="/admin">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link href="/admin">
-                      <span className="sm:hidden">Admin</span>
-                      <span className="hidden sm:inline">Panel Admin</span>
-                    </Link>
-                  </Button>
-                </>
+                <Button size="sm" asChild>
+                  <Link href="/admin">
+                    <LayoutDashboard className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Panel Admin</span>
+                  </Link>
+                </Button>
               ) : isApproved ? (
-                <>
-                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                    <Link href="/catalogo">
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      Catálogo
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                    <Link href="/mis-reservas">
-                      <CalendarCheck className="mr-2 h-4 w-4" />
-                      Mis Reservas
-                    </Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link href="/perfil">
-                      <User className="mr-2 h-4 w-4" />
-                      <span className="hidden sm:inline">Mi Cuenta</span>
-                    </Link>
-                  </Button>
-                </>
+                <Button variant="ghost" size="icon" asChild className="md:hidden">
+                  <Link href="/perfil">
+                    <User className="h-5 w-5" />
+                  </Link>
+                </Button>
               ) : (
                 <Button asChild variant="outline" size="sm">
                   <Link href="/pending">
-                    <User className="mr-2 h-4 w-4" />
-                    Mi Cuenta
+                    <User className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Mi Cuenta</span>
                   </Link>
                 </Button>
               )
@@ -128,14 +106,14 @@ export default async function HomePage() {
               <>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/login">
-                    <LogIn className="mr-2 h-4 w-4" />
+                    <LogIn className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Entrar</span>
                   </Link>
                 </Button>
                 <Button size="sm" asChild>
                   <Link href="/register">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Solicitar Acceso</span>
+                    <UserPlus className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Registrarse</span>
                   </Link>
                 </Button>
               </>
@@ -145,54 +123,91 @@ export default async function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-12 sm:py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
+      <section className="py-8 sm:py-16 px-4 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto max-w-7xl text-center">
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4 sm:mb-6">
             <Image
               src="/logo.jpg"
               alt="Pro-Solutions"
-              width={150}
-              height={150}
-              className="rounded-2xl shadow-lg"
+              width={120}
+              height={120}
+              className="rounded-2xl shadow-lg sm:w-[150px] sm:h-[150px]"
             />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">
             Refacciones para Celulares
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-muted-foreground mb-6 max-w-2xl mx-auto">
             Encuentra las mejores refacciones para todo tipo de celulares.
-            Pantallas, baterías, flex y más.
+            Pantallas, baterias, flex y mas.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {!isLoggedIn && (
-              <Button size="lg" asChild>
+
+          {/* Quick Actions for Logged In Users */}
+          {isLoggedIn && isApproved && !isAdmin && (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto mb-6">
+              <Button size="lg" className="flex-1" asChild>
+                <Link href="/catalogo">
+                  <Search className="mr-2 h-5 w-5" />
+                  Ver Catalogo
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="flex-1" asChild>
+                <Link href="/mis-reservas">
+                  <CalendarCheck className="mr-2 h-5 w-5" />
+                  Mis Reservas
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {/* CTA for non-logged users */}
+          {!isLoggedIn && (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto mb-6">
+              <Button size="lg" className="flex-1" asChild>
                 <Link href="/register">
+                  <UserPlus className="mr-2 h-5 w-5" />
                   Solicitar Cuenta
                 </Link>
               </Button>
-            )}
-          </div>
+              <Button size="lg" variant="outline" className="flex-1" asChild>
+                <Link href="/login">
+                  <LogIn className="mr-2 h-5 w-5" />
+                  Ya tengo cuenta
+                </Link>
+              </Button>
+            </div>
+          )}
 
           {/* Stats */}
-          <div className="flex justify-center gap-8 mt-12">
+          <div className="flex justify-center gap-8 mt-8">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary">{stats.brandsCount}+</div>
-              <div className="text-muted-foreground">Marcas</div>
+              <div className="text-2xl sm:text-3xl font-bold text-primary">{stats.brandsCount}+</div>
+              <div className="text-sm text-muted-foreground">Marcas</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary">{stats.productsCount}+</div>
-              <div className="text-muted-foreground">Productos</div>
+              <div className="text-2xl sm:text-3xl font-bold text-primary">{stats.productsCount}+</div>
+              <div className="text-sm text-muted-foreground">Productos</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Public Products */}
-      <section className="py-12 sm:py-16 px-4">
+      <section className="py-8 sm:py-12 px-4">
         <div className="container mx-auto max-w-7xl">
-          <h2 className="text-2xl font-bold mb-8 text-center">
-            Productos Destacados
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold">
+              Productos Destacados
+            </h2>
+            {isLoggedIn && isApproved && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/catalogo">
+                  Ver todos
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
+          </div>
 
           <ProductGrid
             products={products}
@@ -202,12 +217,15 @@ export default async function HomePage() {
           />
 
           {products.length > 0 && !isLoggedIn && (
-            <div className="text-center mt-8">
+            <div className="text-center mt-8 p-6 bg-muted/50 rounded-lg">
               <p className="text-muted-foreground mb-4">
-                ¿Quieres acceder a precios de mayoreo y productos exclusivos?
+                Accede a precios de mayoreo y productos exclusivos
               </p>
               <Button asChild>
-                <Link href="/register">Solicitar Acceso</Link>
+                <Link href="/register">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Solicitar Acceso
+                </Link>
               </Button>
             </div>
           )}
@@ -215,14 +233,17 @@ export default async function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 px-4">
+      <footer className="border-t py-6 px-4 mb-16 md:mb-0">
         <div className="container mx-auto max-w-7xl text-center text-muted-foreground">
-          <p>Pro-Solutions - Téc. Diego Alvarez</p>
-          <p className="text-sm mt-2">
+          <p className="text-sm">Pro-Solutions - Tec. Diego Alvarez</p>
+          <p className="text-xs mt-1">
             Refacciones para celulares de todas las marcas
           </p>
         </div>
       </footer>
+
+      {/* Mobile Navigation - only for logged in approved customers */}
+      {isLoggedIn && isApproved && !isAdmin && <MobileNav />}
     </div>
   )
 }

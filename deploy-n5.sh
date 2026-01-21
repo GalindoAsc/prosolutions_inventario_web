@@ -61,6 +61,14 @@ echo -e "${GREEN}>>> Actualizando código y reconstruyendo contenedores...${NC}"
 ssh -o StrictHostKeyChecking=no "$REMOTE_USER@$REMOTE_HOST" "
 cd D:\\Projectos
 
+# Si la carpeta existe pero NO es repo git, la borra
+if (Test-Path 'prosolutions_inventario_web') {
+    if (-not (Test-Path 'prosolutions_inventario_web\\.git')) {
+        Write-Host '>>> Carpeta existe pero no es repo git, borrando...'
+        Remove-Item -Recurse -Force 'prosolutions_inventario_web'
+    }
+}
+
 # Clonar si no existe
 if (-not (Test-Path 'prosolutions_inventario_web')) {
     Write-Host '>>> Clonando repositorio por primera vez...'

@@ -141,7 +141,7 @@ export async function POST(req: Request) {
     // Calcular fecha de expiración según tipo de reserva
     let expiresAt: Date
     let depositAmount: number | null = null
-    let status: "PENDING" | "DEPOSIT_VERIFIED" = "PENDING"
+    const status: "PENDING" | "DEPOSIT_VERIFIED" = "PENDING"
 
     if (type === "TEMPORARY") {
       // Reserva temporal: expira en X minutos

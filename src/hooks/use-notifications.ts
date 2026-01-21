@@ -23,19 +23,67 @@ export interface Notification {
 interface UseNotificationsOptions {
   onNotification?: (notification: Notification) => void
   enabled?: boolean
+  playSound?: boolean
+  persist?: boolean
+}
+
+const STORAGE_KEY = "prosolutions_notifications"
+const NOTIFICATION_SOUND = "/sounds/notification.mp3"
+
+function loadPersistedNotifications(): Notification[] {
+  if (typeof window === "undefined") return []
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+function persistNotifications(notifications: Notification[]) {
+  if (typeof window === "undefined") return
+  try {
+    // Keep only last 50 notifications
+    const toStore = notifications.slice(0, 50)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function playNotificationSound() {
+  try {
+    const audio = new Audio(NOTIFICATION_SOUND)
+    audio.volume = 0.5
+    audio.play().catch(() => {
+      // Ignore autoplay errors (browser policy)
+    })
+  } catch {
+    // Ignore audio errors
+  }
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { onNotification, enabled = true } = options
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const { onNotification, enabled = true, playSound = true, persist = true } = options
+  const [notifications, setNotifications] = useState<Notification[]>(() =>
+    persist ? loadPersistedNotifications() : []
+  )
   const [isConnected, setIsConnected] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(() => {
+    if (persist) {
+      const persisted = loadPersistedNotifications()
+      return persisted.filter(n => !n.read).length
+    }
+    return 0
+  })
+  const playSoundRef = useRef(playSound)
+  const persistRef = useRef(persist)
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const maxReconnectAttempts = 5
   const onNotificationRef = useRef(onNotification)
-  
+
   // Actualizar ref cuando cambia onNotification
   useEffect(() => {
     onNotificationRef.current = onNotification
@@ -47,7 +95,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       console.log("SSE: Máximo de intentos de reconexión alcanzado")
       return
     }
-    
+
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
     }
@@ -64,7 +112,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        
+
         // Si recibimos error de autenticación, no reconectar
         if (data.type === "error" && data.code === "UNAUTHORIZED") {
           console.log("SSE: No autorizado, desconectando")
@@ -72,7 +120,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           setIsConnected(false)
           return
         }
-        
+
         if (data.type === "connected") {
           setIsConnected(true)
           return
@@ -88,8 +136,20 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           read: false,
         }
 
-        setNotifications((prev) => [notification, ...prev])
+        setNotifications((prev) => {
+          const updated = [notification, ...prev]
+          if (persistRef.current) {
+            persistNotifications(updated)
+          }
+          return updated
+        })
         setUnreadCount((prev) => prev + 1)
+
+        // Play sound for new notifications
+        if (playSoundRef.current) {
+          playNotificationSound()
+        }
+
         onNotificationRef.current?.(notification)
       } catch (error) {
         console.error("SSE: Error parsing message", error)
@@ -100,12 +160,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setIsConnected(false)
       eventSource.close()
       reconnectAttemptsRef.current += 1
-      
+
       // Reconectar con backoff exponencial
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
         const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current - 1), 30000)
-        console.log(`SSE: Reconectando en ${delay/1000}s (intento ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
-        
+        console.log(`SSE: Reconectando en ${delay / 1000}s (intento ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
+
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current)
         }
@@ -129,22 +189,35 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   }, [])
 
   const markAsRead = useCallback((notificationId: string) => {
-    setNotifications((prev) =>
-      prev.map((n) =>
+    setNotifications((prev) => {
+      const updated = prev.map((n) =>
         n.id === notificationId ? { ...n, read: true } : n
       )
-    )
+      if (persistRef.current) {
+        persistNotifications(updated)
+      }
+      return updated
+    })
     setUnreadCount((prev) => Math.max(0, prev - 1))
   }, [])
 
   const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }))
+      if (persistRef.current) {
+        persistNotifications(updated)
+      }
+      return updated
+    })
     setUnreadCount(0)
   }, [])
 
   const clearNotifications = useCallback(() => {
     setNotifications([])
     setUnreadCount(0)
+    if (persistRef.current) {
+      localStorage.removeItem(STORAGE_KEY)
+    }
   }, [])
 
   const resetAndReconnect = useCallback(() => {
@@ -162,7 +235,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     return () => {
       disconnect()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled])
 
   return {

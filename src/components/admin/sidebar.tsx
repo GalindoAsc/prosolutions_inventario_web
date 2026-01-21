@@ -18,16 +18,20 @@ import {
   Settings,
   X,
   Menu,
+  Bell,
+  Boxes,
 } from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Productos", href: "/admin/productos", icon: Package },
+  { name: "Inventario", href: "/admin/inventario", icon: Boxes },
   { name: "Marcas", href: "/admin/marcas", icon: Smartphone },
   { name: "Modelos", href: "/admin/modelos", icon: Layers },
   { name: "Categorías", href: "/admin/categorias", icon: Tags },
   { name: "Usuarios", href: "/admin/usuarios", icon: Users },
   { name: "Reservas", href: "/admin/reservas", icon: CalendarCheck },
+  { name: "Notificaciones", href: "/admin/notificaciones", icon: Bell },
   { name: "Reportes", href: "/admin/reportes", icon: BarChart3 },
   { name: "Configuración", href: "/admin/configuracion", icon: Settings },
 ]

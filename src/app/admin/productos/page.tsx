@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -19,8 +19,18 @@ import {
   Grid3X3,
   List,
   Edit,
+  Download,
+  Upload,
 } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface ProductModel {
   model: {
@@ -53,6 +63,11 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<"all" | "low-stock" | "public">("all")
   const [viewMode, setViewMode] = useState<ViewMode>("grid-large")
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ message: string; errors: string[] } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchProducts = async () => {
     setLoading(true)
@@ -73,12 +88,69 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     fetchProducts()
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const res = await fetch("/api/products/excel")
+      if (!res.ok) throw new Error("Error al exportar")
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `productos_${new Date().toISOString().split("T")[0]}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      a.remove()
+    } catch (error) {
+      console.error("Error exporting:", error)
+      alert("Error al exportar productos")
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    setImportResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await fetch("/api/products/excel", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setImportResult({ message: data.error || "Error al importar", errors: [] })
+      } else {
+        setImportResult({ message: data.message, errors: data.errors || [] })
+        fetchProducts()
+      }
+    } catch (error) {
+      console.error("Error importing:", error)
+      setImportResult({ message: "Error al importar archivo", errors: [] })
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
   }
 
   const filteredProducts = filter === "public"
@@ -108,11 +180,19 @@ export default function ProductsPage() {
             Gestiona las refacciones del inventario
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Exportar
+          </Button>
+          <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Importar
+          </Button>
           <Button variant="outline" asChild>
             <Link href="/admin/productos/escanear">
               <ScanBarcode className="mr-2 h-4 w-4" />
-              Escanear
+              <span className="hidden sm:inline">Escanear</span>
             </Link>
           </Button>
           <Button asChild>
@@ -123,6 +203,55 @@ export default function ProductsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Import Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar Productos desde Excel</DialogTitle>
+            <DialogDescription>
+              Sube un archivo .xlsx con los productos. Los productos con ID existente se actualizarán.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImport}
+              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+              disabled={importing}
+            />
+
+            {importing && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Importando...
+              </div>
+            )}
+
+            {importResult && (
+              <div className={`p-3 rounded-lg ${importResult.errors.length > 0 ? "bg-yellow-50 dark:bg-yellow-950/20" : "bg-green-50 dark:bg-green-950/20"}`}>
+                <p className="font-medium">{importResult.message}</p>
+                {importResult.errors.length > 0 && (
+                  <ul className="mt-2 text-sm text-muted-foreground list-disc list-inside">
+                    {importResult.errors.map((err, i) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Search and Filters */}
       <div className="flex flex-col gap-4">
